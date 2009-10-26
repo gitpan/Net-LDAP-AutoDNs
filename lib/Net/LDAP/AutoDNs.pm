@@ -10,11 +10,11 @@ Net::LDAP::AutoDNs - Automatically make some default decisions some LDAP DNs and
 
 =head1 VERSION
 
-Version 0.0.0
+Version 0.0.1
 
 =cut
 
-our $VERSION = '0.0.0';
+our $VERSION = '0.0.1';
 
 
 =head1 SYNOPSIS
@@ -119,7 +119,7 @@ sub byEnv{
 	$self->{home}='ou=home,'.$ENV{AutoDNbase};
 	$self->{homeScope}='sub';
 
-	$self->{dhcp}='ou=home,'.$ENV{AutoDNbase};
+	$self->{dhcp}='ou=dhcp,'.$ENV{AutoDNbase};
 	$self->{dhcpScope}='sub';
 
 	$self->{dns}='ou=dns,'.$ENV{AutoDNbase};
@@ -152,7 +152,7 @@ sub byHostname{
 		return undef;
 	}
 	chomp($base);#removes the trailing '\n'
-	$base=~s/^[a-z0-9A-Z-]\.//; #removes everything up to the first '.'
+	$base=~s/^[a-z0-9A-Z-]*\.//; #removes everything up to the first '.'
 	$base=~s/\./,dc=/g;#replaces every '.' with a ',dc='
 	$base='dc='.$base;#creates fine base dn
 
@@ -166,10 +166,10 @@ sub byHostname{
 	$self->{home}='ou=home,'.$base;
 	$self->{homeScope}='sub';
 
-	$self->{dhcp}='ou=home,'.$base;
+	$self->{dhcp}='ou=dhcp,'.$base;
 	$self->{dhcpScope}='sub';
 
-	$self->{dns}='ou=home,'.$base;
+	$self->{dns}='ou=dns,'.$base;
 	$self->{dnsScope}='sub';
 
 	return 0;
