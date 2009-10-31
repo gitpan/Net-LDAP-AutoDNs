@@ -2,7 +2,7 @@ package Net::LDAP::AutoDNs;
 
 use warnings;
 use strict;
-use BSD::Sysctl 'sysctl';
+#use BSD::Sysctl 'sysctl';
 
 =head1 NAME
 
@@ -10,11 +10,11 @@ Net::LDAP::AutoDNs - Automatically make some default decisions some LDAP DNs and
 
 =head1 VERSION
 
-Version 0.0.1
+Version 0.0.2
 
 =cut
 
-our $VERSION = '0.0.1';
+our $VERSION = '0.0.2';
 
 
 =head1 SYNOPSIS
@@ -203,7 +203,7 @@ $obj->{error} is defined, there is an error.
 
 =head2 0
 
-Methode not implemented.
+Methode not implemented yet.
 
 =head2 1
 

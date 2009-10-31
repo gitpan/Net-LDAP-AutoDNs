@@ -1,5 +1,8 @@
 Revision history for Net-LDAP-AutoDNs
 
+0.0.2	2009-10-31/15:00
+		-Remove the sysctl stuff for the time being until I write that actual module.
+
 0.0.1	2009-10-26/0:30
 		-Correct 'dhcp' and 'dns'.
 		-Correct removal of the last part of the hostname.
