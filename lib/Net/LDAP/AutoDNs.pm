@@ -2,7 +2,7 @@ package Net::LDAP::AutoDNs;
 
 use warnings;
 use strict;
-#use BSD::Sysctl 'sysctl';
+use Sys::Hostname;
 
 =head1 NAME
 
@@ -10,11 +10,11 @@ Net::LDAP::AutoDNs - Automatically make some default decisions some LDAP DNs and
 
 =head1 VERSION
 
-Version 0.0.2
+Version 0.1.0
 
 =cut
 
-our $VERSION = '0.0.2';
+our $VERSION = '0.1.0';
 
 
 =head1 SYNOPSIS
@@ -30,14 +30,29 @@ our $VERSION = '0.0.2';
     print $obj->{groups}."\n";
     print $obj->{groupsScope}."\n";
     print $obj->{home}."\n";
-    print $obj->{homeScope}."\n";
+    print $obj->{base}."\n";
 
-
-=head1 FUNCTIONS
+=head1 METHODS
 
 =head2 new
 
 Creates a new Net::LDAP::AutoDNs object.
+
+=head3 hash args
+
+=head4 methods
+
+This is a comma seperated list of methods to use.
+
+The currently supported ones are listed below and checked
+in the listed order.
+
+    devldap
+    env
+    hostname
+
+The naming of those wraps around to the similarly named
+methodes.
 
     #Only the hostname methode will be tried.
     my $obj=Net::LDAP::AutoDNs->({methodes=>"hostname"});
@@ -56,7 +71,7 @@ sub new {
 	#gets the methodes to use
 	#This to make input from things other than perl easier.
 	if (!defined($args{methodes})){
-		$args{methodes}='env,hostname';
+		$args{methodes}='devldap,env,hostname';
 	}
 
 	my $self={error=>undef, methodes=>$args{methodes}};
@@ -69,16 +84,23 @@ sub new {
 	my @split=split(/,/, $args{methodes}); #splits them apart at every ','
 	my $splitInt=0;
 	while (defined($split[$splitInt])){
+		#handles it via the env method
+		if ($unmatched && ($split[$splitInt] eq "devldap")) {
+			if ($self->byDevLDAP()) {
+				$unmatched=undef;#as it as been matched, set $unmatched to false
+			}
+		}
+
+		#handles it via the env method
 		if ($unmatched && ($split[$splitInt] eq "env")) {
 			if ($self->byEnv()) {
 				$unmatched=undef;#as it as been matched, set $unmatched to false
 			}
 		}
 
-		#handles it if it 
+		#handles it if it if using the hostname method
 		if ($unmatched && ($split[$splitInt] eq "hostname")) {
 			if ($self->byHostname()) {
-				print "test";
 				$unmatched=undef;#as it as been matched, set $unmatched to false
 			}
 		}
@@ -92,7 +114,58 @@ sub new {
 
 	return $self;
 }
-	
+
+=head2 byDevLDAP
+
+This sets it up using the information found under '/dev/ldap/'.
+
+More information on this can be found at
+http://eesdp.org/eesdp/ldap-kmod.html .
+
+=cut
+
+sub byDevLDAP{
+	my $self=$_[0];
+
+	$self->{error}=undef;
+
+	if (! -d '/dev/ldap/') {
+		$self->{error}=3;
+		return undef;
+	}
+
+	open(USERS, '<', '/dev/ldap/userBase');
+	$self->{users}=join('', <USERS>);
+	close(USERS);
+
+	open(USERSSCOPE, '<', '/dev/ldap/userScope');
+	$self->{usersScope}=join('', <USERSSCOPE>);
+	close(USERSSCOPE);
+
+	open(GROUP, '<', '/dev/ldap/groupBase');
+	$self->{groups}=join('', <GROUP>);
+	close(GROUP);
+
+	open(GROUPSCOPE, '<', '/dev/ldap/groupScope');
+	$self->{groupsScope}=join('', <GROUPSCOPE>);
+	close(GROUPSCOPE);
+
+	open(HOME, '<', '/dev/ldap/homeBase');
+	$self->{home}=join('', <HOME>);
+	close(HOME);
+
+	open(BASE, '<', '/dev/ldap/base');
+	$self->{base}=join('', <BASE>);
+	close(BASE);
+
+	$self->{dns}='ou=dns,'.$self->{base};
+	$self->{dnsScope}='sub';
+	$self->{dhcp}='ou=dhcp,'.$self->{base};
+	$self->{dnsScope}='sub';
+
+	return 1;
+}
+
 =head2 byEnv
 
 This sets it up using $ENV{AutoDNbase} for the base.
@@ -117,7 +190,8 @@ sub byEnv{
 	$self->{groupsScope}='sub';
 
 	$self->{home}='ou=home,'.$ENV{AutoDNbase};
-	$self->{homeScope}='sub';
+
+	$self->{base}=$ENV{AutoDNbase};
 
 	$self->{dhcp}='ou=dhcp,'.$ENV{AutoDNbase};
 	$self->{dhcpScope}='sub';
@@ -146,7 +220,7 @@ sub byHostname{
 	#blanks any previous errors
 	$self->{error}=undef;
 
-	my $base=`hostname`;#gets the hostname
+	my $base=hostname;#gets the hostname
 	if ($?) {
 		$self->{error}=1;
 		return undef;
@@ -164,35 +238,14 @@ sub byHostname{
 	$self->{groupsScope}='sub';
 
 	$self->{home}='ou=home,'.$base;
-	$self->{homeScope}='sub';
+
+	$self->{base}=$base;
 
 	$self->{dhcp}='ou=dhcp,'.$base;
 	$self->{dhcpScope}='sub';
 
 	$self->{dns}='ou=dns,'.$base;
 	$self->{dnsScope}='sub';
-
-	return 0;
-}
-
-=head2 sysctlMethode
-
-This sets it based on sysctls.
-
-The kernel module for this has currently not been created
-so this is not implemented as of currently.
-
-=cut
-
-sub sysctlMethode{
-	my $self=$_[0];
-	my %args;
-	if(defined($_[1])){
-		%args= %{$_[1]};
-	};
-
-	#set the erorr as not being implemented
-	$self->{error}=0;
 
 	return 0;
 }
@@ -212,6 +265,10 @@ Retrieving hostname failed. Most likely caused by 'hostname' not being in the pa
 =head2 2
 
 None of the methodes returned matched or returned true.
+
+=head2 3
+
+Either the system does not support /dev/ldap/.
 
 =head1 AUTHOR
 

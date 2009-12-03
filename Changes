@@ -1,5 +1,8 @@
 Revision history for Net-LDAP-AutoDNs
 
+0.1.0	2009-12-02/19:00
+		-/dev/ldap support added and it is now the default.
+
 0.0.2	2009-10-31/15:00
 		-Remove the sysctl stuff for the time being until I write that actual module.
 

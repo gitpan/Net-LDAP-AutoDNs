@@ -26,6 +26,11 @@ To install this module, run the following commands:
 	make test
 	make install
 
+/DEV/LDAP
+
+The FreeBSD kernel module for this can be found at
+http://eesdp.org/eesdp/ldap-kmod.html .
+
 SUPPORT AND DOCUMENTATION
 
 After installing, you can find documentation for this module with the
