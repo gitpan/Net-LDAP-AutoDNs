@@ -1,5 +1,8 @@
 Revision history for Net-LDAP-AutoDNs
 
+0.2.0	2010-05-08/04:00
+		-Add EESDP compatibility.
+
 0.1.0	2009-12-02/19:00
 		-/dev/ldap support added and it is now the default.
 

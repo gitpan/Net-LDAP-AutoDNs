@@ -10,11 +10,11 @@ Net::LDAP::AutoDNs - Automatically make some default decisions some LDAP DNs and
 
 =head1 VERSION
 
-Version 0.1.0
+Version 0.2.0
 
 =cut
 
-our $VERSION = '0.1.0';
+our $VERSION = '0.2.0';
 
 
 =head1 SYNOPSIS
@@ -26,11 +26,11 @@ our $VERSION = '0.1.0';
     print $obj->{users}."\n";
     print $obj->{usersScope}."\n";
     print $obj->{dns}."\n";
-    print $obj->{dnsScope}."\n";
     print $obj->{groups}."\n";
     print $obj->{groupsScope}."\n";
     print $obj->{home}."\n";
     print $obj->{base}."\n";
+    print $obj->{bind}."\n";
 
 =head1 METHODS
 
@@ -49,6 +49,7 @@ in the listed order.
 
     devldap
     env
+    EESDPenv
     hostname
 
 The naming of those wraps around to the similarly named
@@ -71,7 +72,7 @@ sub new {
 	#gets the methodes to use
 	#This to make input from things other than perl easier.
 	if (!defined($args{methodes})){
-		$args{methodes}='devldap,env,hostname';
+		$args{methodes}='devldap,env,EESDPenv,hostname';
 	}
 
 	my $self={error=>undef, methodes=>$args{methodes}};
@@ -98,6 +99,13 @@ sub new {
 			}
 		}
 
+		#handles it via the EESDPenv method
+		if ($unmatched && ($split[$splitInt] eq "EESDPenv")) {
+			if ($self->byEESDPenv()) {
+				$unmatched=undef;#as it as been matched, set $unmatched to false
+			}
+		}
+
 		#handles it if it if using the hostname method
 		if ($unmatched && ($split[$splitInt] eq "hostname")) {
 			if ($self->byHostname()) {
@@ -110,6 +118,54 @@ sub new {
 
 	if ($unmatched){
 		$self->{error}=2;
+	}
+
+	return $self;
+}
+
+=head2 newEESDP
+
+Creates a new Net::LDAP::AutoDNs object in a 
+EESDP LDAP Standard method.
+
+=cut
+
+sub newEESDP {
+	my %args;
+	$args{methodes}='hostname,devldap,EESDPenv';
+
+	my $self={error=>undef, methodes=>$args{methodes}};
+
+	bless $self;
+
+	my $unmatched=1;
+
+	#runs through the methodes and finds one to use
+	my @split=split(/,/, $args{methodes}); #splits them apart at every ','
+	my $splitInt=0;
+	while (defined($split[$splitInt])){
+		#handles it via the env method
+		if ($split[$splitInt] eq "devldap") {
+			if ($self->byDevLDAP()) {
+				$unmatched=undef;#as it as been matched, set $unmatched to false
+			}
+		}
+
+		#handles it via the EESDPenv method
+		if ($split[$splitInt] eq "EESDPenv") {
+			if ($self->byEESDPenv()) {
+				$unmatched=undef;#as it as been matched, set $unmatched to false
+			}
+		}
+
+		#handles it if it if using the hostname method
+		if ($split[$splitInt] eq "hostname") {
+			if ($self->byHostname()) {
+				$unmatched=undef;#as it as been matched, set $unmatched to false
+			}
+		}
+
+		$splitInt++;
 	}
 
 	return $self;
@@ -159,9 +215,8 @@ sub byDevLDAP{
 	close(BASE);
 
 	$self->{dns}='ou=dns,'.$self->{base};
-	$self->{dnsScope}='sub';
+
 	$self->{dhcp}='ou=dhcp,'.$self->{base};
-	$self->{dnsScope}='sub';
 
 	return 1;
 }
@@ -194,10 +249,65 @@ sub byEnv{
 	$self->{base}=$ENV{AutoDNbase};
 
 	$self->{dhcp}='ou=dhcp,'.$ENV{AutoDNbase};
-	$self->{dhcpScope}='sub';
 
 	$self->{dns}='ou=dns,'.$ENV{AutoDNbase};
-	$self->{dnsScope}='sub';
+
+	return 1;
+}
+
+=head2 byEESDPenv
+
+Populates all DNs using the EESDP LDAP Standard in regards
+to environmental values.
+
+=cut
+
+sub byEESDPenv{
+	my $self=$_[0];
+	my %args;
+
+	#blanks any previous errors
+	$self->{error}=undef;
+
+	#gets the base DN
+	if (defined($ENV{'EESDP-BaseDN'})) {
+		$self->{base}=$ENV{'EESDP-BaseDN'};
+	}
+
+	#gets the user OU
+	if (defined($ENV{'EESDP-UserOU'})) {
+		$self->{users}=$ENV{'EESDP-UserOU'};
+	}
+
+	#gets the user OU scope
+	if (defined($ENV{'EESDP-UserScope'})) {
+		$self->{usersScope}=$ENV{'EESDP-UserScope'};
+	}
+
+	#gets the group OU
+	if (defined($ENV{'EESDP-GroupOU'})) {
+		$self->{groups}=$ENV{'EESDP-GroupOU'};
+	}
+
+	#gets the group OU scope
+	if (defined($ENV{'EESDP-GroupScope'})) {
+		$self->{groupsScope}=$ENV{'EESDP-GroupScope'};
+	}
+
+	#gets the DNS OU
+	if (defined($ENV{'EESDP-DNSOU'})) {
+		$self->{dns}=$ENV{'EESDP-DNSOU'};
+	}
+
+	#gets the home OU
+	if (defined($ENV{'EESDP-HomeOU'})) {
+		$self->{home}=$ENV{'EESDP-HomeOU'};
+	}
+
+	#gets the bind DN
+	if (defined($ENV{'EESDP-BindDN'})) {
+		$self->{bind}=$ENV{'EESDP-BindDN'};
+	}
 
 	return 1;
 }
@@ -242,12 +352,10 @@ sub byHostname{
 	$self->{base}=$base;
 
 	$self->{dhcp}='ou=dhcp,'.$base;
-	$self->{dhcpScope}='sub';
 
 	$self->{dns}='ou=dns,'.$base;
-	$self->{dnsScope}='sub';
 
-	return 0;
+	return 1;
 }
 
 =head1 Error Codes
