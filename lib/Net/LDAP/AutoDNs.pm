@@ -10,11 +10,11 @@ Net::LDAP::AutoDNs - Automatically make some default decisions some LDAP DNs and
 
 =head1 VERSION
 
-Version 0.2.0
+Version 0.2.1
 
 =cut
 
-our $VERSION = '0.2.0';
+our $VERSION = '0.2.1';
 
 
 =head1 SYNOPSIS
@@ -47,10 +47,10 @@ This is a comma seperated list of methods to use.
 The currently supported ones are listed below and checked
 in the listed order.
 
-    devldap
-    env
-    EESDPenv
     hostname
+    env
+    devldap
+    EESDPenv
 
 The naming of those wraps around to the similarly named
 methodes.
@@ -71,43 +71,43 @@ sub new {
 
 	#gets the methodes to use
 	#This to make input from things other than perl easier.
-	if (!defined($args{methodes})){
-		$args{methodes}='devldap,env,EESDPenv,hostname';
+	if (!defined($args{methods})){
+		$args{methods}='hostname,env,EESDPenv,devldap';
 	}
 
-	my $self={error=>undef, methodes=>$args{methodes}};
+	my $self={error=>undef, methode=>$args{methods}};
 
 	bless $self;
 
 	my $unmatched=1;
 
 	#runs through the methodes and finds one to use
-	my @split=split(/,/, $args{methodes}); #splits them apart at every ','
+	my @split=split(/,/, $args{methods}); #splits them apart at every ','
 	my $splitInt=0;
 	while (defined($split[$splitInt])){
 		#handles it via the env method
-		if ($unmatched && ($split[$splitInt] eq "devldap")) {
+		if ($split[$splitInt] eq "devldap") {
 			if ($self->byDevLDAP()) {
 				$unmatched=undef;#as it as been matched, set $unmatched to false
 			}
 		}
 
 		#handles it via the env method
-		if ($unmatched && ($split[$splitInt] eq "env")) {
+		if ($split[$splitInt] eq "env") {
 			if ($self->byEnv()) {
 				$unmatched=undef;#as it as been matched, set $unmatched to false
 			}
 		}
 
 		#handles it via the EESDPenv method
-		if ($unmatched && ($split[$splitInt] eq "EESDPenv")) {
+		if ($split[$splitInt] eq "EESDPenv") {
 			if ($self->byEESDPenv()) {
 				$unmatched=undef;#as it as been matched, set $unmatched to false
 			}
 		}
 
 		#handles it if it if using the hostname method
-		if ($unmatched && ($split[$splitInt] eq "hostname")) {
+		if ($split[$splitInt] eq "hostname") {
 			if ($self->byHostname()) {
 				$unmatched=undef;#as it as been matched, set $unmatched to false
 			}
@@ -190,33 +190,61 @@ sub byDevLDAP{
 		return undef;
 	}
 
-	open(USERS, '<', '/dev/ldap/userBase');
-	$self->{users}=join('', <USERS>);
-	close(USERS);
+	if (open(USERS, '<', '/dev/ldap/userBase')){
+		my $temp=join('', <USERS>);
+		if ($temp ne '') {
+			$self->{users}=join('', <USERS>);
+		}
+		close(USERS);
+	}
 
-	open(USERSSCOPE, '<', '/dev/ldap/userScope');
-	$self->{usersScope}=join('', <USERSSCOPE>);
-	close(USERSSCOPE);
+	if (open(USERSSCOPE, '<', '/dev/ldap/userScope')){
+		my $temp=join('', <USERSSCOPE>);
+		if ($temp ne '') {
+			$self->{usersScope}=join('', <USERSSCOPE>);
+		}
+		close(USERSSCOPE);
+	}
 
-	open(GROUP, '<', '/dev/ldap/groupBase');
-	$self->{groups}=join('', <GROUP>);
-	close(GROUP);
+	if (open(GROUP, '<', '/dev/ldap/groupBase')){
+		my $temp=join('', <GROUP>);
+		if ($temp ne '') {
+			$self->{groups}=join('', <GROUP>);
+		}
+		close(GROUP);
+	}
 
-	open(GROUPSCOPE, '<', '/dev/ldap/groupScope');
-	$self->{groupsScope}=join('', <GROUPSCOPE>);
-	close(GROUPSCOPE);
+	if (open(GROUPSCOPE, '<', '/dev/ldap/groupScope')){
+		my $temp=join('', <GROUPSCOPE>);
+		if ($temp ne '') {
+			$self->{groupsScope}=join('', <GROUPSCOPE>);
+		}
+		close(GROUPSCOPE);
+	}
 
-	open(HOME, '<', '/dev/ldap/homeBase');
-	$self->{home}=join('', <HOME>);
-	close(HOME);
+	if (open(HOME, '<', '/dev/ldap/homeBase')){
+		my $temp=join('', <HOME>);
+		if ($temp ne '') {
+			$self->{home}=join('', <HOME>);
+		}
+		close(HOME);
+	}
 
-	open(BASE, '<', '/dev/ldap/base');
-	$self->{base}=join('', <BASE>);
-	close(BASE);
+	if (open(BASE, '<', '/dev/ldap/base')){
+		my $temp=join('', <BASE>);
+		if ($temp ne '') {
+			$self->{base}=join('', <BASE>);
+		}
+		close(BASE);
+	}
 
-	$self->{dns}='ou=dns,'.$self->{base};
+	if (defined( $self->{base} )){
+		$self->{dns}='ou=dns,'.$self->{base}
+	}
 
-	$self->{dhcp}='ou=dhcp,'.$self->{base};
+	if (defined( $self->{base} )){
+		$self->{dhcp}='ou=dhcp,'.$self->{base};
+	}
 
 	return 1;
 }
