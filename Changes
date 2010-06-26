@@ -1,5 +1,8 @@
 Revision history for Net-LDAP-AutoDNs
 
+0.2.2	2010-06-26/03:40
+		-Add "Sys::Hostname" as a required module.
+
 0.2.1	2010-05-26/07:40
 		-Correct spelling of methods in the config.
 		-Now only handles stuff for /dev/ldap/ if it can actually open the device.

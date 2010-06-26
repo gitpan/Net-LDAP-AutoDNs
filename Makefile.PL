@@ -10,6 +10,7 @@ WriteMakefile(
 			  PL_FILES            => {},
 			  PREREQ_PM => {
 							'Test::More' => 0,
+							'Sys::Hostname'=>0,
 							},
 			  dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
 			  clean               => { FILES => 'Net-LDAP-AutoDNs-*' },
